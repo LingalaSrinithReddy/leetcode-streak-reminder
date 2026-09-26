@@ -54,7 +54,7 @@ def send_ntfy(title, message, priority="default"):
     resp.raise_for_status()
 
 def run():
-    slot = sys.argv[1] if len(sys.argv) > 1 else "9:30pm"
+    slot = sys.argv[1] if len(sys.argv) > 1 else "9:24pm"
     print(f"Slot: {slot}")
 
     count = get_today_submission_count()
@@ -64,7 +64,7 @@ def run():
         print(f"Already made {count} submission(s) today — no reminder needed.")
         return
 
-    if slot == "9:30pm":
+    if slot == "9:24pm":
         send_ntfy(
             "LeetCode Streak Reminder",
             "No submission yet today. You have until midnight (UTC-based day)!",
