@@ -30,7 +30,6 @@ jobs:
 
       - name: Check streak and notify
         env:
-          LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
-          LEETCODE_CSRF: ${{ secrets.LEETCODE_CSRF }}
+          LEETCODE_USERNAME: ${{ secrets.LEETCODE_USERNAME }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python check_streak.py "${{ steps.slot.outputs.slot }}"
