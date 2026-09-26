@@ -2,7 +2,8 @@ name: LeetCode Streak Reminder
 
 on:
   schedule:
-    - cron: "45 17 * * *"
+    - cron: "54 15 * * *"
+    - cron: "57 16 * * *"
   workflow_dispatch:
 
 jobs:
@@ -21,10 +22,10 @@ jobs:
         id: slot
         run: |
           HOUR=$(date -u +%H)
-          if [ "$HOUR" = "16" ]; then
-            echo "slot=9:30pm" >> "$GITHUB_OUTPUT"
+          if [ "$HOUR" = "15" ]; then
+            echo "slot=9:24pm" >> "$GITHUB_OUTPUT"
           else
-            echo "slot=10:30pm" >> "$GITHUB_OUTPUT"
+            echo "slot=10:27pm" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check streak and notify
