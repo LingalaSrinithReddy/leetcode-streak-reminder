@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import traceback
 import requests
 from datetime import datetime, timezone
 
@@ -39,7 +40,7 @@ def get_today_submission_count():
     return calendar.get(today_key, 0)
 
 def send_ntfy(title, message, priority="default"):
-    requests.post(
+    resp = requests.post(
         f"https://ntfy.sh/{NTFY_TOPIC}",
         data=message.encode("utf-8"),
         headers={
@@ -49,10 +50,15 @@ def send_ntfy(title, message, priority="default"):
         },
         timeout=10,
     )
+    print(f"ntfy response status: {resp.status_code}")
+    resp.raise_for_status()
 
-def main():
+def run():
     slot = sys.argv[1] if len(sys.argv) > 1 else "9:30pm"
+    print(f"Slot: {slot}")
+
     count = get_today_submission_count()
+    print(f"Today's submission count: {count}")
 
     if count > 0:
         print(f"Already made {count} submission(s) today — no reminder needed.")
@@ -70,6 +76,22 @@ def main():
             "Still no submission today! ~90 min left before the day resets.",
             priority="high",
         )
+
+def main():
+    try:
+        run()
+    except Exception:
+        error_text = traceback.format_exc()
+        print(error_text)
+        try:
+            send_ntfy(
+                "Streak Checker Crashed",
+                "The LeetCode streak script hit an error — check GitHub Actions logs.",
+                priority="high",
+            )
+        except Exception:
+            print("Also failed to send the crash alert itself.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
