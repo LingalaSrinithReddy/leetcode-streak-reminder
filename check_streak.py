@@ -1,34 +1,42 @@
 import os
 import sys
+import json
 import requests
+from datetime import datetime, timezone
 
-LEETCODE_SESSION = os.environ["LEETCODE_SESSION"]
-CSRF_TOKEN = os.environ["LEETCODE_CSRF"]
+LEETCODE_USERNAME = os.environ["LEETCODE_USERNAME"]
 NTFY_TOPIC = os.environ["NTFY_TOPIC"]
 
 GRAPHQL_URL = "https://leetcode.com/graphql"
 
-def get_streak_status():
+def get_today_submission_count():
     query = {
         "query": """
-            query getStreakCounter {
-                streakCounter {
-                    streakCount
-                    daysSkipped
-                    currentDayCompleted
+            query userProfileCalendar($username: String!) {
+                matchedUser(username: $username) {
+                    submissionCalendar
                 }
             }
-        """
+        """,
+        "variables": {"username": LEETCODE_USERNAME},
     }
     headers = {
         "Content-Type": "application/json",
         "Referer": "https://leetcode.com",
-        "Cookie": f"LEETCODE_SESSION={LEETCODE_SESSION}; csrftoken={CSRF_TOKEN};",
-        "X-CSRFToken": CSRF_TOKEN,
     }
     resp = requests.post(GRAPHQL_URL, json=query, headers=headers, timeout=15)
     resp.raise_for_status()
-    return resp.json()["data"]["streakCounter"]
+    matched_user = resp.json()["data"]["matchedUser"]
+
+    if matched_user is None:
+        raise ValueError(f"LeetCode user '{LEETCODE_USERNAME}' not found — check the username secret.")
+
+    calendar = json.loads(matched_user["submissionCalendar"])
+
+    today_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_key = str(int(today_utc.timestamp()))
+
+    return calendar.get(today_key, 0)
 
 def send_ntfy(title, message, priority="default"):
     requests.post(
@@ -44,23 +52,22 @@ def send_ntfy(title, message, priority="default"):
 
 def main():
     slot = sys.argv[1] if len(sys.argv) > 1 else "9:30pm"
-    status = get_streak_status()
+    count = get_today_submission_count()
 
-    if status["currentDayCompleted"]:
-        print("Already submitted today — no reminder needed.")
+    if count > 0:
+        print(f"Already made {count} submission(s) today — no reminder needed.")
         return
 
-    streak = status["streakCount"]
     if slot == "9:30pm":
         send_ntfy(
             "LeetCode Streak Reminder",
-            f"No submission yet today. Current streak: {streak}. You have until midnight!",
+            "No submission yet today. You have until midnight (UTC-based day)!",
             priority="default",
         )
     else:
         send_ntfy(
             "LAST CALL - LeetCode Streak",
-            f"Still no submission! Streak of {streak} is about to break. ~90 min left.",
+            "Still no submission today! ~90 min left before the day resets.",
             priority="high",
         )
 
